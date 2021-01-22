@@ -65,6 +65,13 @@ class Round:
         # test names are in set
         pass
 
+    def ceremony(self, lights):
+        """
+        Record the number of lights (perfect matches) at the end of the
+        round.
+        """
+        pass
+
 
 class Tournament:
     """Run a tournament or season of Are You the One."""
