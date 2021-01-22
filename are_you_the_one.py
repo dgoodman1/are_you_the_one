@@ -4,9 +4,9 @@ import numpy as np
 """
 * Can either submit final matchups ahead of time or generate them randomly.
 * Retain history.
-
-
-
+* Starting with a "brute force" method of enumerating all possibilities and
+    then eliminating paths false paths as they are identified.
+* Need to go back and forth between individual matchups and group info.
 """
 
 
