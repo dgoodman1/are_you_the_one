@@ -30,10 +30,15 @@ class Girl(Contestant):
 
 class Grid:
     """Matrix to track matchups."""
-    def __init__(self, guys, girls):
+    def __init__(self, guys, girls, matches=False):
         self.N = len(guys)
-        self.X = pd.DataFrame(np.zeros((self.N, self.N), dtype=int),
-                              index=[guy.name for guy in guys],
+
+        if matches:
+            data = np.identity(self.N, dtype='int')
+        else:
+            data = np.zeros((self.N, self.N), dtype='int')
+
+        self.X = pd.DataFrame(data, index=[guy.name for guy in guys],
                               columns=[girl.name for girl in girls])
 
 
@@ -43,10 +48,14 @@ class Round:
     """
     def __init__(self, matches):
         """Submit matches for the round as a list of tuples."""
-        pass
+        self.grid = self._assign_matches(matches)
 
+    def _assign_matches(self, matches):
+        """Create a Grid of assigned matches."""
+        self.guys, self.girls = zip(*matches)
+        return Grid(self.guys, self.girls, matches=True)
 
-class Tournament(object):
+class Tournament:
     """Run a tournament or season of Are You the One."""
     def __init__(self, guys, girls):
         """
@@ -57,7 +66,7 @@ class Tournament(object):
         else:
             self.grid = Grid(guys, girls)
 
-        self.round = 1
+        self.round = Round()
         self.honey_moon_suite = []
 
     def truth_booth(self, guy_name, girl_name, perfect_match=False):
