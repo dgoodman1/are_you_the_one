@@ -55,6 +55,17 @@ class Round:
         self.guys, self.girls = zip(*matches)
         return Grid(self.guys, self.girls, matches=True)
 
+    def truth_booth(self, guy_name, girl_name, perfect_match=False):
+        """
+        Record results of Truth Booth.
+
+        If a perfect match is found, that couple goes to the honey
+        moon suite and no longer participates in the match ups.
+        """
+        # test names are in set
+        pass
+
+
 class Tournament:
     """Run a tournament or season of Are You the One."""
     def __init__(self, guys, girls):
@@ -68,13 +79,3 @@ class Tournament:
 
         self.round = Round()
         self.honey_moon_suite = []
-
-    def truth_booth(self, guy_name, girl_name, perfect_match=False):
-        """
-        Record results of Truth Booth.
-
-        If a perfect match is found, that couple goes to the honey
-        moon suite and no longer participates in the match ups.
-        """
-        # test names are in set
-        pass
