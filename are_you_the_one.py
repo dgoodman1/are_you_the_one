@@ -84,5 +84,5 @@ class Tournament:
         else:
             self.grid = Grid(guys, girls)
 
-        self.round = Round()
+        self.round = Round(list(zip(guys, girls)))
         self.honey_moon_suite = []
