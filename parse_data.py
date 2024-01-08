@@ -50,9 +50,16 @@ def parse_cast_table(table):
     headers = ['cast_member', 'age', 'hometown']
     sex = table[0][0].split()[0].lower()
     body = table[1:]
-    return (pd.DataFrame(body, columns=headers)
+    df = (pd.DataFrame(body, columns=headers)
             .assign(sex=sex)
             .astype({'age': 'int'}))
+
+    # add nickname column (if one is provided) or first name
+    nickname = df.cast_member.str.extract('\"(.*?)\"', expand=False)
+    nickname = nickname.combine_first(df.cast_member.str.split().str.get(0))
+    df = df.assign(nickname=nickname)
+
+    return df
 
 
 def parse_progress_table(table):
