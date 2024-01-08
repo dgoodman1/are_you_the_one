@@ -10,18 +10,20 @@ def parse_cell_value(element):
     from html element.
     """
     style = element.attrs.get('style', '')
-    if 'background' in style:
-        color = style.replace('background:', '')
-        if color == 'salmon':
-            status = 'Unconfirmed Perfect Match'
-        elif color == 'lightgreen':
-            status = 'Confirmed Perfect Match'
-        else:
-            raise ValueError(f'Unknown color: {color}')
+    if len(style):
+        styles = dict([v.strip().split(":")
+                       for v in style.split(";") if len(v)])
+        bg_color = styles.get('background', '')
 
-        return element.text.strip(), status
-    else:
-        return element.text.strip()
+        if bg_color in ('salmon', 'lightgreen'):
+            if bg_color == 'salmon':
+                status = 'Unconfirmed Perfect Match'
+            else:
+                status = 'Confirmed Perfect Match'
+
+            return element.text.strip(), status
+
+    return element.text.strip()
 
 
 def listify_table(table):
@@ -68,6 +70,8 @@ def parse_progress_table(table):
                 match_row.append(val[0])
                 status_row.append(val[1])
             else:
+                if val == '—':
+                    val = None
                 match_row.append(val)
                 if i == 0:
                     status_row.append(val)
@@ -142,7 +146,7 @@ def main(season):
 
 
 if __name__ == '__main__':
-    SEASON = 1
+    SEASON = 2
 
     cast, progress, correct_matches, truth_booth = main(SEASON)
     season_results = {'cast': cast,
