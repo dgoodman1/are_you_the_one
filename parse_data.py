@@ -1,7 +1,13 @@
 # pull data from Wikipedia
+import re
 import pandas as pd
 import requests
 from bs4 import BeautifulSoup
+
+
+def remove_square_brackets(text):
+    cleaned_text = re.sub('\[.*?\]', '', text)
+    return cleaned_text
 
 
 def parse_cell_value(element):
@@ -9,6 +15,7 @@ def parse_cell_value(element):
     Parse table cell value (text) and correct match status (if available)
     from html element.
     """
+    text_value = remove_square_brackets(element.text.strip())
     style = element.attrs.get('style', '')
     if len(style):
         styles = dict([v.strip().split(":")
@@ -21,9 +28,9 @@ def parse_cell_value(element):
             else:
                 status = 'Confirmed Perfect Match'
 
-            return element.text.strip(), status
+            return text_value, status
 
-    return element.text.strip()
+    return text_value
 
 
 def listify_table(table):
