@@ -3,9 +3,6 @@ import pandas as pd
 import requests
 from bs4 import BeautifulSoup
 
-SEASON = 1
-base_url = f'https://en.wikipedia.org/wiki/Are_You_the_One%3F_(season_{SEASON})'
-
 
 def parse_cell_value(element):
     """
@@ -56,7 +53,7 @@ def parse_progress_table(table):
     with the number of lights at the end of each ceremony (correct
     matches).
     """
-    ceremony_idx = pd.Index([int(i) for i in table[1]], name='Ceremony')
+    ceremony_idx = pd.Index([int(i) for i in table[1]], name='ceremony')
     correct_matches = pd.Series(table[-1][1:], index=ceremony_idx,
                                 name='n_correct').astype('int')
 
@@ -75,7 +72,7 @@ def parse_progress_table(table):
                 if i == 0:
                     status_row.append(val)
                 else:
-                    status_row.append('Not a Match')
+                    status_row.append('Not A Match')
         match_data.append(match_row)
         status_data.append(status_row)
 
@@ -89,14 +86,23 @@ def parse_progress_table(table):
                  .rename('status'))
 
     df = pd.concat([match_df, status_df],
-                   keys=['match', 'status'], axis=1)
+                   keys=[other_sex, 'status'], axis=1)
 
     return df, correct_matches
 
 
 def parse_truth_booth_table(table):
     """Parse Truth Booth results from list of lists."""
-    pass
+    headers = [col.lower() for col in table[0]]
+    body = table[1:]
+    df = pd.DataFrame(body, columns=headers)
+    df[['guy', 'girl']] = df.couple.str.split(' & ', expand=True)
+    df = df.drop('couple', axis=1)
+    # TODO: parse episode number
+    # df.episode = df.episode.astype('int')
+    df = df.rename(columns={'result': 'tb_result'})
+
+    return df
 
 
 def build_cast_frame(cast_tables):
@@ -106,8 +112,9 @@ def build_cast_frame(cast_tables):
                       ignore_index=True))
 
 
-if __name__ == '__main__':
-    # get the data
+def main(season):
+    """Parse data from Wikipedia."""
+    base_url = f'https://en.wikipedia.org/wiki/Are_You_the_One%3F_(season_{season})'
     response = requests.get(base_url)
     soup = BeautifulSoup(response.text, 'html.parser')
 
@@ -117,6 +124,34 @@ if __name__ == '__main__':
     list_data = [listify_table(table) for table in tables]
 
     cast = build_cast_frame(list_data[:2])
-    progress, correct_matches = parse_progress_table(list_data[2])
+    cast['season'] = season
 
-    print("Done.")
+    progress, correct_matches = parse_progress_table(list_data[2])
+    progress['season'] = season
+    progress = progress.reset_index()
+    correct_matches = (correct_matches
+                       .reset_index()
+                       .assign(season=season))
+
+    # skipping Table 3 since it's the same data as Table 2
+
+    truth_booth = parse_truth_booth_table(list_data[4])
+    truth_booth['season'] = season
+
+    return cast, progress, correct_matches, truth_booth
+
+
+if __name__ == '__main__':
+    SEASON = 1
+
+    cast, progress, correct_matches, truth_booth = main(SEASON)
+    season_results = {'cast': cast,
+                      'progress': progress,
+                      'correct_matches': correct_matches,
+                      'truth_booth': truth_booth}
+
+    # save data
+    for name, df in season_results.items():
+        df.to_csv(f'data/{name}_season_{SEASON}.csv', index=False)
+
+    print(f"Saved data to 'data' directory for Season {SEASON}.")
