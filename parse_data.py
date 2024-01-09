@@ -4,6 +4,11 @@ import pandas as pd
 import requests
 from bs4 import BeautifulSoup
 
+# Only implemented for these seasons due to differences in structure
+# or type of data available. Will need more development to parse
+# the interstitial seasons.
+AVAILABLE_SEASONS = [1, 2, 3, 4, 6, 7, 9]
+
 
 def remove_square_brackets(text):
     cleaned_text = re.sub('\[.*?\]', '', text)
@@ -132,11 +137,14 @@ def build_cast_frame(cast_tables):
 
 def main(season):
     """Parse data from Wikipedia."""
+    if season not in AVAILABLE_SEASONS:
+        raise NotImplementedError(f"Season {season} not available.")
+
     base_url = f'https://en.wikipedia.org/wiki/Are_You_the_One%3F_(season_{season})'
     response = requests.get(base_url)
     soup = BeautifulSoup(response.text, 'html.parser')
 
-    tables = soup.find_all('table', attrs={'class':'wikitable'}, limit=5)
+    tables = soup.find_all('table', attrs={'class': 'wikitable'}, limit=5)
 
     # convert html tables to lists of lists
     list_data = [listify_table(table) for table in tables]
@@ -160,16 +168,16 @@ def main(season):
 
 
 if __name__ == '__main__':
-    SEASON = 2
+    # download data for all available seasons
+    for season in AVAILABLE_SEASONS:
+        cast, progress, correct_matches, truth_booth = main(season)
+        season_results = {'cast': cast,
+                          'progress': progress,
+                          'correct_matches': correct_matches,
+                          'truth_booth': truth_booth}
 
-    cast, progress, correct_matches, truth_booth = main(SEASON)
-    season_results = {'cast': cast,
-                      'progress': progress,
-                      'correct_matches': correct_matches,
-                      'truth_booth': truth_booth}
+        # save data
+        for name, df in season_results.items():
+            df.to_csv(f'data/{name}_season_{season}.csv', index=False)
 
-    # save data
-    for name, df in season_results.items():
-        df.to_csv(f'data/{name}_season_{SEASON}.csv', index=False)
-
-    print(f"Saved data to 'data' directory for Season {SEASON}.")
+        print(f"Saved data to 'data' directory for Season {season}.")
