@@ -53,7 +53,7 @@ def listify_table(table):
 def parse_cast_table(table):
     """Build Cast table from a list of lists."""
     headers = ['cast_member', 'age', 'hometown']
-    sex = table[0][0].split()[0].lower()
+    sex = table[0][0].split()[0].title()
     body = table[1:]
     df = (pd.DataFrame(body, columns=headers)
             .assign(sex=sex)
