@@ -94,17 +94,14 @@ class Grid:
                               columns=[girl.name for girl in girls])
 
 
-class Matrix(np.ndarray):
+class Matrix:
     """
     Numpy array of all possible matchups. Guys are represented by the
     column index and their corresponding match is represented by the value.
     """
-    def __new__(cls, N_matchups):
-        obj = np.zeros((factorial(N_matchups), N_matchups),
-                       dtype=np.int8).view(cls)
-        obj.N_matchups = N_matchups
-        obj._matrix = obj._create_matrix()
-        return obj
+    def __init__(self, N_matchups):
+        self.N_matchups = N_matchups
+        self._matrix = self._create_matrix()
 
     def _create_matrix(self, permutation_fcn=it.permutations):
         """Create a matrix of all possible matchups."""
@@ -155,6 +152,13 @@ class Matrix(np.ndarray):
 
     def __getitem__(self, indices):
         return self._matrix[indices]
+
+    def __repr__(self):
+        return f"Matrix([{self._matrix.shape}]{self._matrix})"
+
+    @property
+    def shape(self):
+        return self._matrix.shape
 
 
 
