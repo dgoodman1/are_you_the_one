@@ -130,6 +130,7 @@ def build_cast_frame(cast_tables):
     return (pd.concat([parse_cast_table(tbl) for tbl in cast_tables],
                       ignore_index=True))
 
+
 def add_nickname_to_cast(cast, progress):
     """
     Add nickname to cast DataFrame so it matches with progress DataFrame.
@@ -138,7 +139,7 @@ def add_nickname_to_cast(cast, progress):
     """
     for sex in ("Male", "Female",):
         sex_type = 'guy' if sex == "Male" else 'girl'
-        prog_nicknames = progress[sex_type].unique()
+        prog_nicknames = progress.query("ceremony < 10")[sex_type].unique()
         cast_names = cast.query("sex==@sex").cast_member.unique()
 
         names = defaultdict(list)
@@ -172,7 +173,7 @@ def add_nickname_to_cast(cast, progress):
                                           .cast_member
                                           .map(lambda x: names[x][0]))
 
-        return cast
+    return cast
 
 
 def main(season):
