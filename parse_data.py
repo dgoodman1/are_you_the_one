@@ -1,5 +1,6 @@
 # pull data from Wikipedia
 import re
+from collections import defaultdict
 import pandas as pd
 import requests
 from bs4 import BeautifulSoup
@@ -58,11 +59,6 @@ def parse_cast_table(table):
     df = (pd.DataFrame(body, columns=headers)
             .assign(sex=sex)
             .astype({'age': 'int'}))
-
-    # add nickname column (if one is provided) or first name
-    nickname = df.cast_member.str.extract('\"(.*?)\"', expand=False)
-    nickname = nickname.combine_first(df.cast_member.str.split().str.get(0))
-    df = df.assign(nickname=nickname)
 
     return df
 
@@ -134,6 +130,50 @@ def build_cast_frame(cast_tables):
     return (pd.concat([parse_cast_table(tbl) for tbl in cast_tables],
                       ignore_index=True))
 
+def add_nickname_to_cast(cast, progress):
+    """
+    Add nickname to cast DataFrame so it matches with progress DataFrame.
+
+    Return `cast` DataFrame with `nickname` column added.
+    """
+    for sex in ("Male", "Female",):
+        sex_type = 'guy' if sex == "Male" else 'girl'
+        prog_nicknames = progress[sex_type].unique()
+        cast_names = cast.query("sex==@sex").cast_member.unique()
+
+        names = defaultdict(list)
+        for nickname in prog_nicknames:
+            i = 0
+            for full_name in cast_names:
+                if nickname.replace('.', '') in full_name:
+                    names[full_name].append(nickname)
+                    i += 1
+
+                if i > 1:
+                    for nn in names[full_name]:
+                        if nn == full_name.split()[0]:
+                            names[full_name] = [nickname]
+                            i = 1
+                            break
+                        else:
+                            names[full_name].remove(nn)
+                            i -= 1
+
+            if i != 1:
+                raise ValueError(f"Multiple matches for {nickname} in cast.")
+
+        if len(names) != len(cast_names):
+            missing = set(cast_names) - set(names)
+            raise ValueError(f"Missing nicknames for {','.join(missing)} "
+                             "from progress table.")
+        else:
+            mask = cast.sex == sex
+            cast.loc[mask, 'nickname'] = (cast[mask]
+                                          .cast_member
+                                          .map(lambda x: names[x][0]))
+
+        return cast
+
 
 def main(season):
     """Parse data from Wikipedia."""
@@ -158,6 +198,9 @@ def main(season):
     correct_matches = (correct_matches
                        .reset_index()
                        .assign(season=season))
+
+    # add nickname to cast DataFrame so it matches with progress DataFrame
+    cast = add_nickname_to_cast(cast, progress)
 
     # skipping Table 3 since it's the same data as Table 2
 
