@@ -4,6 +4,7 @@ from math import factorial
 from typing import Any
 import pandas as pd
 import numpy as np
+from typing import Union
 
 """
 * Can either submit final matchups ahead of time or generate them randomly.
@@ -17,7 +18,7 @@ import numpy as np
 @dataclass
 class Contestant:
     """A single person."""
-    name: str
+    name: str   # The contestant's nickname from Progress data
     sex: str
     gender_preference: str
 
@@ -25,13 +26,33 @@ class Contestant:
         assert self.sex in ('Male', 'Female',)
         assert self.gender_preference in ('Male', 'Female', 'Both',)
 
-@dataclass
+    def __eq__(self, other: Any):
+        if isinstance(other, str):
+            return self.name == other
+        elif hasattr(other, 'name'):
+            return self.name == other.name
+        else:
+            raise TypeError(f"Cannot compare {type(self)} to {type(other)}.")
+
+    def __repr__(self):
+        return (f"{self.__class__.__name__}\n"
+                f"name: {self.name}\n"
+                f"sex: {self.sex}\n"
+                f"gender preference: {self.gender_preference}")
+
+    def __str__(self):
+        return f"{self.name}"
+
+    def __hash__(self):
+        return hash(self.name)
+
+
 class Guy(Contestant):
     """A single guy contestant."""
     def __init__(self, name: str, gender_preference: str = 'Female'):
         super().__init__(name, 'Male', gender_preference=gender_preference)
 
-@dataclass
+
 class Girl(Contestant):
     def __init__(self, name: str, gender_preference: str = 'Male'):
         super().__init__(name, 'Female', gender_preference=gender_preference)
@@ -45,11 +66,11 @@ class Match:
         self.girl = girl
 
     def __repr__(self):
-        print(f"({guy}, {girl})")
+        print(f"Match({guy}, {girl})")
 
 
 class Path:
-    """A single path through the tournament."""
+    """A single set of matchups for all contestants."""
     def __init__(self, matches: set[tuple]):
         self._matches = matches
         self._N = len(matches)
@@ -75,25 +96,6 @@ class Path:
         self._matches = matches
 
 
-class ActivePaths:
-    def __init__(self, paths):
-        self.paths = paths
-
-
-class Grid:
-    """Matrix to track matchups."""
-    def __init__(self, guys, girls, matches=False):
-        self.N = len(guys)
-
-        if matches:
-            data = np.identity(self.N, dtype='int')
-        else:
-            data = np.zeros((self.N, self.N), dtype='int')
-
-        self.X = pd.DataFrame(data, index=[guy.name for guy in guys],
-                              columns=[girl.name for girl in girls])
-
-
 class Matrix:
     """
     Numpy array of all possible matchups. Guys are represented by the
@@ -108,13 +110,13 @@ class Matrix:
         perm_it = permutation_fcn(np.arange(self.N_matchups))
         return np.array(tuple(perm_it), dtype=np.int8)
 
-    def drop_path(self, path: Path):
+    def drop_path(self, path: Union[Path, np.ndarray, list, tuple]):
         """Drop path (row) from the matrix."""
         mask = np.equal(self._matrix, path).all(axis=1)
         if mask.sum() > 0:
             self._matrix = self._matrix[~mask]
 
-    def drop_paths_containing_match(self, match: Match):
+    def drop_paths_containing_match(self, match: Union[Match, tuple]):
         """
         Drop paths containing a given match.
 
@@ -126,7 +128,7 @@ class Matrix:
             self._matrix = self._matrix[~mask]
             print(f"Dropped {mask.sum():,.0f} paths.")
 
-    def drop_paths_not_containing_match(self, match: Match):
+    def drop_paths_not_containing_match(self, match: Union[Match, tuple]):
         """
         Drop paths that do not contain a given match.
 
@@ -138,7 +140,10 @@ class Matrix:
             self._matrix = self._matrix[mask]
             print(f"Dropped {mask.sum():,.0f} paths.")
 
-    def drop_paths_not_containing_n_matches(self, path: Path, n: int):
+    def drop_paths_not_containing_n_matches(self,
+                                            path: Union[Path, np.ndarray,
+                                                        tuple, list],
+                                            n: int):
         """
         Drop paths that don't contain n matches from a given path.
 
@@ -160,49 +165,3 @@ class Matrix:
     def shape(self):
         return self._matrix.shape
 
-
-
-class Round:
-    """
-    Simulation of a single round.  Consists of a match up and a Truth Booth.
-    """
-    def __init__(self, matches):
-        """Submit matches for the round as a list of tuples."""
-        self.grid = self._assign_matches(matches)
-
-    def _assign_matches(self, matches):
-        """Create a Grid of assigned matches."""
-        self.guys, self.girls = zip(*matches)
-        return Grid(self.guys, self.girls, matches=True)
-
-    def truth_booth(self, guy_name, girl_name, perfect_match=False):
-        """
-        Record results of Truth Booth.
-
-        If a perfect match is found, that couple goes to the honey
-        moon suite and no longer participates in the match ups.
-        """
-        # test names are in set
-        pass
-
-    def ceremony(self, lights):
-        """
-        Record the number of lights (perfect matches) at the end of the
-        round.
-        """
-        pass
-
-
-class Tournament:
-    """Run a tournament or season of Are You the One."""
-    def __init__(self, guys, girls):
-        """
-        Initialize with a sequence of guys and the same number of girls.
-        """
-        if len(guys) != len(girls):
-            raise ValueError("Must pass the same number of guys and girls.")
-        else:
-            self.grid = Grid(guys, girls)
-
-        self.round = Round(list(zip(guys, girls)))
-        self.honey_moon_suite = []
