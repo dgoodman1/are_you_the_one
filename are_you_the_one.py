@@ -68,6 +68,12 @@ class Match:
     def __repr__(self):
         print(f"Match({guy}, {girl})")
 
+    def __getitem__(self, index: int):
+        if index == 0:
+            return self.guy
+        elif index == 1:
+            return self.girl
+
 
 class Path:
     """A single set of matchups for all contestants."""
