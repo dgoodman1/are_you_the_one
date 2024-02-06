@@ -35,9 +35,9 @@ class Contestant:
             raise TypeError(f"Cannot compare {type(self)} to {type(other)}.")
 
     def __repr__(self):
-        return (f"{self.__class__.__name__}\n"
-                f"name: {self.name}\n"
-                f"sex: {self.sex}\n"
+        return (f"{self.__class__.__name__}("
+                f"name: {self.name}, "
+                f"sex: {self.sex}, "
                 f"gender preference: {self.gender_preference}")
 
     def __str__(self):
