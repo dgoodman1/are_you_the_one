@@ -38,15 +38,16 @@ class Contestant:
 
     def __repr__(self):
         return (f"{self.__class__.__name__}("
+                f"idx: {self.idx}, "
                 f"name: {self.name}, "
                 f"sex: {self.sex}, "
-                f"gender preference: {self.gender_preference}")
+                f"gender preference: {self.gender_preference})")
 
     def __str__(self):
         return f"{self.name}"
 
     def __hash__(self):
-        return hash(self.name)
+        return hash(self.idx)
 
 
 class Guy(Contestant):
@@ -70,7 +71,10 @@ class Match:
         self.girl = girl
 
     def __repr__(self):
-        print(f"Match({self.guy}, {self.girl})")
+        return f"Match({self.guy.name}, {self.girl.name})"
+
+    def __str__(self):
+        return f"Match({self.guy.name}, {self.girl.name})"
 
     def __getitem__(self, index: int):
         assert index in (0, 1)
@@ -88,7 +92,7 @@ class Match:
 
 class Path:
     """A single set of matchups for all contestants."""
-    def __init__(self, matches: set[Match]):
+    def __init__(self, matches: tuple[Match]):
         self._matches = matches
         self._N = len(matches)
 
@@ -104,7 +108,7 @@ class Path:
     def __iter__(self):
         return iter(self.matches)
 
-    def _check_unique(self, matches: set[Match]):
+    def _check_unique(self, matches: tuple[Match]):
         """Check that all matches in a path are unique."""
         pass
 
@@ -227,13 +231,26 @@ class Season:
     def __repr__(self):
         return f"Season({self._guys}, {self._girls})"
 
+    def __str__(self):
+        return f"Season({self._guys}, {self._girls})"
+
     @property
     def guys(self):
         return self._guys
 
     @property
+    def guys_indices(self):
+        """Dict of guys indexed by their numerical index."""
+        return self._rev_guys
+
+    @property
     def girls(self):
         return self._girls
+
+    @property
+    def girls_indices(self):
+        """Dict of girls indexed by their numerical index."""
+        return self._rev_girls
 
     @property
     def n_ceremonies(self):
@@ -245,15 +262,30 @@ class Season:
         """Number of truth booths held."""
         return self._n_truth_booths
 
+    def _gen_people_collections(self, names: list[str], sex: str):
+        """Generate list of people and a reverse lookup dictionary based on
+        a list of names and their sex."""
+        persons = []
+        idx_dict = {}
+        Sex = Guy if sex == 'Male' else Girl
+        for i, name in enumerate(names):
+            person = Sex(i, name)
+            persons.append(person)
+            idx_dict[name] = i
+        return persons, idx_dict
+
     def _init_contestants(self, sex: str):
         """Initialize the guys for the season."""
         assert sex in ('Male', 'Female',)
         mask = self._reader.cast.sex == sex
         names = self._reader.cast.loc[mask, 'nickname'].tolist()
+        persons, idx_dict = self._gen_people_collections(names, sex)
         if sex == 'Male':
-            self._guys = {Guy(i, name) for i, name in enumerate(names)}
+            self._guys = persons
+            self._rev_guys = idx_dict
         else:
-            self._girls = {Girl(i, name) for i, name in enumerate(names)}
+            self._girls = persons
+            self._rev_girls = idx_dict
         return
 
     def ceremony(self, matchups: Path, n_perfect_matches: int):
