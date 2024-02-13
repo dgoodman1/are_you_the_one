@@ -107,9 +107,10 @@ class Path:
     def matches(self):
         return self._matches
 
-    @matches.setter
-    def matches(self, matches):
-        self._matches = matches
+    def to_array(self):
+        """Convert the path to an array of matches."""
+        data = [m[1] for m in sorted(self._matches, key=lambda x: x[0])]
+        return np.array(data, dtype=np.int8)
 
 
 class Matrix:
