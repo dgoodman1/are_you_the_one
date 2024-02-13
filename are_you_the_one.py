@@ -87,7 +87,7 @@ class Match:
 
 class Path:
     """A single set of matchups for all contestants."""
-    def __init__(self, matches: set[tuple]):
+    def __init__(self, matches: set[Match]):
         self._matches = matches
         self._N = len(matches)
 
