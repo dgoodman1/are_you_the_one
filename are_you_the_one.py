@@ -104,6 +104,10 @@ class Path:
     def __iter__(self):
         return iter(self.matches)
 
+    def _check_unique(self, matches: set[Match]):
+        """Check that all matches in a path are unique."""
+        pass
+
     @property
     def matches(self):
         return self._matches
@@ -189,6 +193,23 @@ class Matrix:
     @property
     def shape(self):
         return self._matrix.shape
+
+    @property
+    def feasible_paths(self):
+        return self._matrix.shape[0]
+
+    def _count_match_in_matrix(self, match: tuple[int]):
+        """Count the number of times a given match occurs."""
+        mask = np.equal(self._matrix[:, match[0]] == match[1])
+        return mask.sum()
+
+    def prob_match(self, match: Match):
+        """Calculate the probability of a given match."""
+        guy_idx, girl_idx = match.idx
+
+        return self._count_match_in_matrix((guy_idx, girl_idx)) / \
+            self.feasible_paths
+
 
 class Season:
     """
