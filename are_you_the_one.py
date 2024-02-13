@@ -66,7 +66,7 @@ class Match:
         self.girl = girl
 
     def __repr__(self):
-        print(f"Match({guy}, {girl})")
+        print(f"Match({self.guy}, {self.girl})")
 
     def __getitem__(self, index: int):
         if index == 0:
