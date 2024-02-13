@@ -2,9 +2,10 @@ import itertools as it
 from dataclasses import dataclass
 from math import factorial
 from typing import Any
-import pandas as pd
+from collections import Counter
 import numpy as np
 from typing import Union
+from data_reader import Reader
 
 """
 * Can either submit final matchups ahead of time or generate them randomly.
@@ -189,3 +190,72 @@ class Matrix:
     def shape(self):
         return self._matrix.shape
 
+class Season:
+    """
+    A single season of Are You The One?.  This class is used to keep track
+    of all the contestants and their matches.
+    """
+    def __init__(self, season: int):
+        self._reader = Reader(season)
+        for sex in ('Male', 'Female',):
+            self._init_contestants(sex)
+        self._matrix = Matrix(self._guys, self._girls)
+        self._n_ceremonies = 0
+        self._n_truth_booths = 0
+
+    def __repr__(self):
+        return f"Season({self._guys}, {self._girls})"
+
+    @property
+    def guys(self):
+        return self._guys
+
+    @property
+    def girls(self):
+        return self._girls
+
+    @property
+    def n_ceremonies(self):
+        """Number of ceremonies held."""
+        return self._n_ceremonies
+
+    @property
+    def n_truth_booths(self):
+        """Number of truth booths held."""
+        return self._n_truth_booths
+
+    def _init_contestants(self, sex: str):
+        """Initialize the guys for the season."""
+        assert sex in ('Male', 'Female',)
+        mask = self._reader.cast.sex == sex
+        names = self._reader.cast.loc[mask, 'nickname'].tolist()
+        if sex == 'Male':
+            self._guys = {Guy(i, name) for i, name in enumerate(names)}
+        else:
+            self._girls = {Girl(i, name) for i, name in enumerate(names)}
+        return
+
+    def ceremony(self, matchups: Path, n_perfect_matches: int):
+        """Apply results from a ceremony."""
+        matchups_array = matchups.to_array()
+        (self
+         ._matrix
+         .drop_paths_not_containing_n_matches(matchups_array,
+                                              n_perfect_matches))
+        self._n_ceremonies += 1
+        print(f"Feasible paths: {self._matrix.feasible_paths:,.0f}")
+        return
+
+    def truth_booth(self, match: Match, is_correct: bool):
+        """Apply results from a truth booth."""
+        if is_correct:
+            (self
+             ._matrix
+             .drop_paths_not_containing_match(match))
+        else:
+            (self
+             ._matrix
+             .drop_paths_containing_match(match))
+        self._n_truth_booths += 1
+        print(f"Feasible paths: {self._matrix.feasible_paths:,.0f}")
+        return
