@@ -21,6 +21,7 @@ class Contestant:
     name: str   # The contestant's nickname from Progress data
     sex: str
     gender_preference: str
+    idx: int
 
     def __post_init__(self):
         assert self.sex in ('Male', 'Female',)
@@ -49,13 +50,15 @@ class Contestant:
 
 class Guy(Contestant):
     """A single guy contestant."""
-    def __init__(self, name: str, gender_preference: str = 'Female'):
-        super().__init__(name, 'Male', gender_preference=gender_preference)
+    def __init__(self, idx: int, name: str, gender_preference: str = 'Female'):
+        super().__init__(name, 'Male', gender_preference=gender_preference,
+                         idx=idx)
 
 
 class Girl(Contestant):
-    def __init__(self, name: str, gender_preference: str = 'Male'):
-        super().__init__(name, 'Female', gender_preference=gender_preference)
+    def __init__(self, idx: int, name: str, gender_preference: str = 'Male'):
+        super().__init__(name, 'Female', gender_preference=gender_preference,
+                         idx=idx)
 
 
 class Match:
@@ -69,10 +72,17 @@ class Match:
         print(f"Match({self.guy}, {self.girl})")
 
     def __getitem__(self, index: int):
+        assert index in (0, 1)
         if index == 0:
             return self.guy
         elif index == 1:
             return self.girl
+
+    @property
+    def idx(self):
+        """Tuple of the numerical indices of the guy and
+        girl match."""
+        return (self.guy.idx, self.girl.idx)
 
 
 class Path:
@@ -107,8 +117,15 @@ class Matrix:
     Numpy array of all possible matchups. Guys are represented by the
     column index and their corresponding match is represented by the value.
     """
-    def __init__(self, N_matchups):
-        self.N_matchups = N_matchups
+    def __init__(self, guys: set[Guy], girls: set[Girl]):
+        n_guys = len(guys)
+        n_girls = len(girls)
+        if n_guys != n_girls:
+            raise NotImplementedError(f"Number of guys ({n_guys}) must equal "
+                                      f"number of girls ({n_girls}).")
+        self._guys = {getattr(guy, 'idx'): guy for guy in guys}
+        self._girls = {getattr(girl, 'idx'): girl for girl in girls}
+        self.N_matchups = n_girls
         self._matrix = self._create_matrix()
 
     def _create_matrix(self, permutation_fcn=it.permutations):
@@ -134,7 +151,7 @@ class Matrix:
             self._matrix = self._matrix[~mask]
             print(f"Dropped {mask.sum():,.0f} paths.")
 
-    def drop_paths_not_containing_match(self, match: Union[Match, tuple]):
+    def drop_paths_not_containing_match(self, match: tuple[int, int]):
         """
         Drop paths that do not contain a given match.
 
